@@ -1,65 +1,16 @@
+import os # access to curl
 import argparse # beautiful CLI program
-from bs4 import BeautifulSoup # handles traversing DOM
 from datetime import datetime, date, timedelta # handles time
-from selenium import webdriver # handles webscraping
-# Handles selenium wait for page to load
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
 import time # handles timeout and wait
-
-# Firefox selenium setup
-options = webdriver.FirefoxOptions()
-options.add_argument('--ignore-certificate-errors')
-options.add_argument('--incognito')
-#options.add_argument('--headless')
-driver = webdriver.Firefox(executable_path="./geckodriver", options=options)
+import json # parse json data
 
 # Hardcoded locations
 LOCATION = {
-    "trondheim": {"sted": "Trondheim S", "pos": "63.436279,10.399123"},
-    "lillehammer": {"sted": "Lillehammer stasjon", "pos": "61.114912,10.461479"}
+    "trondheim": {"location": "Trondheim S", "latitude": "63.436279","longitude": "10.399123"},
+    "lillehammer": {"location": "Lillehammer stasjon", "latitude": "61.114912","longitude": "10.461479"}
 }
-TIMEOUT = 10 # seconds
 
-# Parsed inputs
-afrom = "trondheim"
-ato = "lillehammer"
-n = 2
-timestamp = "2021-09-17"
-timestamp = datetime.strptime(timestamp, "%Y-%m-%d").date()
-
-def visitUrl(url, timestamp):
-    driver.get(url)
-    date_tag = datetime.strftime(datetime.strptime(str(timestamp), "%Y-%m-%d").date(), "%d.%m.%Y")
-    try:
-        WebDriverWait(driver, TIMEOUT).until(EC.presence_of_element_located((By.ID, 'date-tag-'+date_tag)))
-    except TimeoutException:
-        print("Timed out waiting for page to load!")
-        return
-    time.sleep(1)
-    page_source = driver.page_source
-    soup = BeautifulSoup(page_source, 'lxml')
-    travel_suggestions = soup.select('li[aria-label*="Reise"]')
-    # print(travel_suggestions)
-    for li in travel_suggestions:
-        div = li.find_all('div')[0]
-        span = div.find_all('span')
-        travel_time = span[0].get_text()
-        travel_duration = span[4].get_text()
-        price = "".join(span[-1].get_text().split()[2:])
-        print(travel_time, travel_duration, price)
-
-# Run webscraper n-times
-for i in range(2):
-    print()
-    print(timestamp)
-    url = f"https://www.vy.no/se-reiseforslag?from={LOCATION[afrom]['sted']}&to={LOCATION[ato]['sted']}&fromDateTime={timestamp}T02:00:13.951Z&fromExternalId=NSR:NSR:StopPlace:59977&toExternalId=NSR:NSR:StopPlace:420&passengers=W3siaWQiOjYwLCJhZ2UiOm51bGwsImRpc2NvdW50cyI6W10sImNhdGVnb3J5IjoiQWR1bHQiLCJuYW1lIjoiVm9rc2VuIn1d&addons=W3sidHlwZSI6ImJpY3ljbGUiLCJudW1iZXJUb0J1eSI6MH0seyJ0eXBlIjoibGFyZ2VfYW5pbWFsIiwibnVtYmVyVG9CdXkiOjB9LHsidHlwZSI6InNtYWxsX2FuaW1hbCIsIm51bWJlclRvQnV5IjowfSx7InR5cGUiOiJzdHJvbGxlciIsIm51bWJlclRvQnV5IjowfSx7InR5cGUiOiJ3aGVlbGNoYWlyIiwibnVtYmVyVG9CdXkiOjB9XQ==&fromPosition={LOCATION[afrom]['pos']}&toPosition={LOCATION[ato]['pos']}"
-    # print(url)
-    visitUrl(url, timestamp)
-    timestamp = timestamp + timedelta(days=1)
-
+# Parse inputs
 parser = argparse.ArgumentParser(description='A webscraper for vy.no, finding train/bus tickets from location A to B')
 #parser.add_argument('-f','--foo', help='Description for foo argument', required=True)
 parser.add_argument('-f','--from', help='Description for bar argument')
@@ -68,3 +19,60 @@ parser.add_argument('-s','--start-date', help='Description for bar argument')
 parser.add_argument('-n','--n', help='Description for bar argument')
 args = vars(parser.parse_args())
 print(args)
+
+# Parsed inputs
+afrom = "lillehammer"
+ato = "trondheim"
+n = 2
+datestring = "2021-09-23"
+
+# Get cookie
+datadome = "datadome=W_Oh65wv_0r7vM~6ZdcAKYyKJZ_6ney.-PTVpLI3PrSzT9NlNUO4w~Xb8dODYdjEvPdL7xEgjXpqV.13HKUwHVJ~8xarc.rZoVcfbUaJ19;"
+
+# Run the program n-times
+for i in range(n):
+    print()
+    print(datestring)
+    timestamp = datetime.strptime(datestring, "%Y-%m-%d").isoformat()+"Z"
+    # Save data, from, to and date
+    data = json.dumps({
+        "from":{
+            "latitude": LOCATION[afrom]['latitude'],
+            "longitude": LOCATION[afrom]['longitude'],
+            "userQuery":{"searchTerm":LOCATION[afrom]['location']},
+            "externalReferences":[]
+        },
+        "to":{
+            "latitude": LOCATION[ato]['latitude'],
+            "longitude": LOCATION[ato]['longitude'],
+            "userQuery":{"searchTerm":LOCATION[ato]['location']},
+            "externalReferences":[]
+        },
+        "date": timestamp,
+        "filter":{"includeModes":["TRAIN","BUS","TRAM","METRO","WATER"]},
+        "searchContext":"FIND_JOURNEY_INITIAL"
+    })
+
+    # Get id for date
+    curl = f"curl -s 'https://www.vy.no/services/itinerary/api/travel-planner/search' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0' -H 'Accept: application/json' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'X-language: no' -H 'terminal-type: WEB' -H 'Content-Type: application/json' -H 'Origin: https://www.vy.no' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Cookie: {datadome}' -H 'Cache-Control: max-age=0' -H 'TE: Trailers' --data-raw '"+data+"'"
+
+    data = os.popen(curl).read()
+    data = json.loads(data)["suggestions"]
+    ids = []
+    keys = {}
+    for suggestion in data:
+        suggestion_id = suggestion['id']
+        ids.append(suggestion_id)
+        value = {"arrival": suggestion['arrival'], "departure": suggestion['departure'], "duration": suggestion['totalDuration']}
+        keys[suggestion_id] = value
+
+# Get price from id
+# ids = json.dumps(["c3a50580-43fb-487d-9bf6-5ea7605a6c2f","c3437810-7628-4de4-9507-f9f2244ac388","2880b942-ee4a-4ece-9bab-fb529fc7e1aa","1ee47292-6958-426e-8bd3-6ad466152c7b","445d8d8b-0a78-4bc1-adca-6640501512b3","3afbbb3c-1087-4cb8-be57-2fddfc2153fb","9bb035f6-1f50-47c1-86c8-c82aad07952b","972ace71-a14f-4072-9820-87ad16701e29"])
+    ids = json.dumps(ids)
+    curl = """curl -s 'https://www.vy.no/services/booking/api/offer' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0' -H 'Accept: application/json' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'X-language: no' -H 'terminal-type: WEB' -H 'X-currency: nok' -H 'Content-Type: application/json' -H 'Origin: https://www.vy.no' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Cookie: """+datadome+"""' -H 'TE: Trailers' --data-raw '{"itineraryIds":"""+ids+""","passengers":[],"addons":[]}'"""
+    data = os.popen(curl).read()
+    data = json.loads(data)['itineraryOffers']
+    for suggestion in data:
+        time = keys[suggestion['itineraryId']]
+        price = int(int(suggestion['minimumPrice']['value'])/100)
+        print(time, f"{price},-")

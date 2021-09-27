@@ -15,20 +15,19 @@ with open("user-agents.txt", "r") as f:
     useragents = [x[:-1] for x in f.readlines()]
 
 # Parse inputs
-parser = argparse.ArgumentParser(description='A python CLI for vy.no, effectively displaying train/bus tickets from location A to B')
-#parser.add_argument('-f','--foo', help='Description for foo argument', required=True)
-parser.add_argument('-f','--from', help='Description for bar argument')
-parser.add_argument('-t','--to', help='Description for bar argument')
-parser.add_argument('-s','--start-date', help='Description for bar argument')
-parser.add_argument('-n','--n', help='Description for bar argument')
+parser = argparse.ArgumentParser(description='A python CLI for vy.no, effectively displaying train/bus tickets from location A to B', epilog='Made by me, for me c:')
+parser.add_argument('-f','--from', help='the location you will travel from', type=str, required=True)
+parser.add_argument('-t','--to', help='the location you will travel to', type=str, required=True)
+parser.add_argument('-d','--departure-date', help='the departure date in format "YYYY-mm-dd"', type=str, required=True)
+parser.add_argument('-n','--n', help='the amount of days you want to search', type=int)
 args = vars(parser.parse_args())
-print(args)
+print("Parsed:", args)
 
 # Parsed inputs
-afrom = "lillehammer"
-ato = "trondheim"
-n = 2
-datestring = "2021-09-25"
+afrom = args['from'] or "lillehammer"
+ato = args['to'] or "trondheim"
+n = args['n'] or 1
+datestring = args['departure_date'] or "2021-09-25"
 
 # Get cookie
 datadome = "datadome=W_Oh65wv_0r7vM~6ZdcAKYyKJZ_6ney.-PTVpLI3PrSzT9NlNUO4w~Xb8dODYdjEvPdL7xEgjXpqV.13HKUwHVJ~8xarc.rZoVcfbUaJ19;"

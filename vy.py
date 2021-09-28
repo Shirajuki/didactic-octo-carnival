@@ -10,6 +10,7 @@ LOCATION = {
     "trondheim": {"location": "Trondheim S", "latitude": "63.436279","longitude": "10.399123"},
     "lillehammer": {"location": "Lillehammer stasjon", "latitude": "61.114912","longitude": "10.461479"}
 }
+WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 useragents = []
 with open("user-agents.txt", "r") as f:
     useragents = [x[:-1] for x in f.readlines()]
@@ -35,11 +36,12 @@ datadome = "datadome=W_Oh65wv_0r7vM~6ZdcAKYyKJZ_6ney.-PTVpLI3PrSzT9NlNUO4w~Xb8dO
 # Run the program n-times
 for i in range(n):
     print()
-    print(datestring)
+    print(datestring, end=" (")
     useragent = random.choice(useragents) # doesn't seem to work some of the time, overwrite with working useragent
     useragent = "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"
 
     timestamp = datetime.strptime(datestring, "%Y-%m-%d").isoformat()+"Z"
+    print(WEEKDAYS[datetime.strptime(datestring, "%Y-%m-%d").weekday()], end=")\n")
     # Save data, from, to and date
     data = json.dumps({
         "from":{

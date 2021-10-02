@@ -14,9 +14,6 @@ LOCATION = {
     "gardermoen": {"location": "Oslo lufthavn", "latitude": "60.193361","longitude": "11.097887"}
 }
 WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-useragents = []
-with open("user-agents.txt", "r") as f:
-    useragents = [x[:-1] for x in f.readlines()]
 
 # Parse inputs
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description='A python CLI for vy.no, effectively displaying train/bus tickets from location A to B', epilog=textwrap.dedent('''
@@ -28,7 +25,7 @@ parser.add_argument('-t','--to', help='the location you will travel to', type=st
 parser.add_argument('-d','--departure-date', help='the departure date in format "YYYY-mm-dd"', type=str, required=True)
 parser.add_argument('-n','--n', help='the amount of days you want to search', type=int)
 parser.add_argument('-w','--weekdays', help='filter on weekdays (mon tue wed thu fri sat sun)', nargs="+")
-parser.add_argument('-v','--verbose', help='displays parsed debug', nargs="*")
+parser.add_argument('-v','--verbose', help='displays parsed debug', action="store_true")
 args = vars(parser.parse_args())
 if args['verbose'] != None:
     print("Parsed:", args)
@@ -40,15 +37,14 @@ n = args['n'] or 1
 datestring = args['departure_date'] or "2021-09-25"
 fweekdays = args['weekdays'] or []
 
-# Get cookie
-datadome = "datadome=W_Oh65wv_0r7vM~6ZdcAKYyKJZ_6ney.-PTVpLI3PrSzT9NlNUO4w~Xb8dODYdjEvPdL7xEgjXpqV.13HKUwHVJ~8xarc.rZoVcfbUaJ19;"
+# Specific user information, cookie and useragent
+# NB! Remember to change the values under to your specific browser information
+datadome = "datadome=MveZCgDI-LYTM-cAYSRAdJ_Qq8u~UxFweM6XEmGjbm8gkucCk6oNH-wg4mrG7gPn-_Szk0Z36hgAOuqHcnimgad1h9_qOK9hzur658ddqp"
+useragent = "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"
 
 # Run the program n-times
 i = 0
 while i < n:
-    useragent = random.choice(useragents) # doesn't seem to work some of the time, overwrite with working useragent
-    useragent = "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"
-
     timestamp = datetime.strptime(datestring, "%Y-%m-%d").isoformat()+"Z"
     day = WEEKDAYS[datetime.strptime(datestring, "%Y-%m-%d").weekday()]
     if len(fweekdays) > 0 and day.lower()[:3] not in fweekdays:

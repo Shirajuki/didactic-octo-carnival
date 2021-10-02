@@ -4,11 +4,14 @@ from datetime import datetime, date, timedelta # handles time
 import time # handles timeout and wait
 import json # parse json data
 import random
+import textwrap
 
 # Hardcoded locations
 LOCATION = {
     "trondheim": {"location": "Trondheim S", "latitude": "63.436279","longitude": "10.399123"},
-    "lillehammer": {"location": "Lillehammer stasjon", "latitude": "61.114912","longitude": "10.461479"}
+    "lillehammer": {"location": "Lillehammer stasjon", "latitude": "61.114912","longitude": "10.461479"},
+    "oslo": {"location": "Oslo S", "latitude": "59.910357","longitude": "10.753051"},
+    "gardermoen": {"location": "Oslo lufthavn", "latitude": "60.193361","longitude": "11.097887"}
 }
 WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 useragents = []
@@ -16,32 +19,48 @@ with open("user-agents.txt", "r") as f:
     useragents = [x[:-1] for x in f.readlines()]
 
 # Parse inputs
-parser = argparse.ArgumentParser(description='A python CLI for vy.no, effectively displaying train/bus tickets from location A to B', epilog='Made by me, for me c:')
+parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description='A python CLI for vy.no, effectively displaying train/bus tickets from location A to B', epilog=textwrap.dedent('''
+    Get tickets from-to: python3 vy.py -f trondheim -t lillehammer -d 2021-10-10 -n 3
+    Get tickets weekday filtered: python3 vy.py -f trondheim -t lillehammer -d 2021-10-10 -n 5 -w mon tue fri
+    Made by me, for me c:'''))
 parser.add_argument('-f','--from', help='the location you will travel from', type=str, required=True)
 parser.add_argument('-t','--to', help='the location you will travel to', type=str, required=True)
 parser.add_argument('-d','--departure-date', help='the departure date in format "YYYY-mm-dd"', type=str, required=True)
 parser.add_argument('-n','--n', help='the amount of days you want to search', type=int)
+parser.add_argument('-w','--weekdays', help='filter on weekdays (mon tue wed thu fri sat sun)', nargs="+")
+parser.add_argument('-v','--verbose', help='displays parsed debug', nargs="*")
 args = vars(parser.parse_args())
-print("Parsed:", args)
+if args['verbose'] != None:
+    print("Parsed:", args)
 
 # Parsed inputs
 afrom = args['from'] or "lillehammer"
 ato = args['to'] or "trondheim"
 n = args['n'] or 1
 datestring = args['departure_date'] or "2021-09-25"
+fweekdays = args['weekdays'] or []
 
 # Get cookie
 datadome = "datadome=W_Oh65wv_0r7vM~6ZdcAKYyKJZ_6ney.-PTVpLI3PrSzT9NlNUO4w~Xb8dODYdjEvPdL7xEgjXpqV.13HKUwHVJ~8xarc.rZoVcfbUaJ19;"
 
 # Run the program n-times
-for i in range(n):
-    print()
-    print(datestring, end=" (")
+i = 0
+while i < n:
     useragent = random.choice(useragents) # doesn't seem to work some of the time, overwrite with working useragent
     useragent = "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"
 
     timestamp = datetime.strptime(datestring, "%Y-%m-%d").isoformat()+"Z"
-    print(WEEKDAYS[datetime.strptime(datestring, "%Y-%m-%d").weekday()], end=")\n")
+    day = WEEKDAYS[datetime.strptime(datestring, "%Y-%m-%d").weekday()]
+    if len(fweekdays) > 0 and day.lower()[:3] not in fweekdays:
+        datestring = timestamp.split("T")[0]
+        datestring = datetime.strptime(datestring, "%Y-%m-%d")
+        datestring += timedelta(days=1)
+        datestring = datetime.strftime(datestring, "%Y-%m-%d")
+        continue
+    i += 1
+    print()
+    print(datestring, end=" (")
+    print(day, end=")\n")
     # Save data, from, to and date
     data = json.dumps({
         "from":{
@@ -81,6 +100,7 @@ for i in range(n):
     data = os.popen(curl).read()
     data = json.loads(data)['itineraryOffers']
 
+    prices = []
     suggestions = []
     for suggestion in data:
         time = times[suggestion['itineraryId']]
@@ -95,7 +115,15 @@ for i in range(n):
         arrival = datetime.strftime(ticket['arrival'], "%H:%M")
         duration = f"({ticket['duration']['hours']}t {ticket['duration']['minutes']}min)"
         price = ticket['price']
+        if int(price[:-2]) > 0:
+            prices.append(int(price[:-2]))
         print(f"{departure} - {arrival}, {duration.rjust(10)} - {price.rjust(6)}")
+
+    # Outputs the cheapest ticket
+    prices.sort()
+    cheapest = prices[0]
+    cheapest_formatted= '\x1b[93;4m' + str(cheapest)+',-'+ '\x1b[0m'
+    print(f">>> Cheapest ticket: {cheapest_formatted}")
 
     # Update the date to the next day
     datestring = timestamp.split("T")[0]

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os # access to curl
 import argparse # beautiful CLI program
 from datetime import datetime, date, timedelta # handles time

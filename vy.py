@@ -39,7 +39,6 @@ datestring = args['departure_date'] or "2021-09-25"
 fweekdays = args['weekdays'] or []
 
 # Specific user information, cookie and useragent
-# datadome = "datadome=MveZCgDI-LYTM-cAYSRAdJ_Qq8u~UxFweM6XEmGjbm8gkucCk6oNH-wg4mrG7gPn-_Szk0Z36hgAOuqHcnimgad1h9_qOK9hzur658ddqp"
 datadome = os.popen("curl -i -s 'https://www.vy.no/'| grep -Eo 'datadome=.*;' | tr '; ' $'\n' | head -1").read().strip()
 useragent = "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"
 
@@ -91,7 +90,6 @@ while i < n:
         times[suggestion_id] = parsed_time_value
 
     # Get price from id
-    # ids = json.dumps(["c3a50580-43fb-487d-9bf6-5ea7605a6c2f","c3437810-7628-4de4-9507-f9f2244ac388","2880b942-ee4a-4ece-9bab-fb529fc7e1aa","1ee47292-6958-426e-8bd3-6ad466152c7b","445d8d8b-0a78-4bc1-adca-6640501512b3","3afbbb3c-1087-4cb8-be57-2fddfc2153fb","9bb035f6-1f50-47c1-86c8-c82aad07952b","972ace71-a14f-4072-9820-87ad16701e29"])
     ids = json.dumps(ids)
     curl = f"curl -s 'https://www.vy.no/services/booking/api/offer' -H 'User-Agent: {useragent}' -H 'Accept: application/json' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'X-language: no' -H 'terminal-type: WEB' -H 'X-currency: nok' -H 'Content-Type: application/json' -H 'Origin: https://www.vy.no' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Cookie: "+datadome+"""' -H 'TE: Trailers' --data-raw '{"itineraryIds":"""+ids+""","passengers":[],"addons":[]}'"""
     data = os.popen(curl).read()

@@ -28,7 +28,7 @@ parser.add_argument('-n','--n', help='the amount of days you want to search', ty
 parser.add_argument('-w','--weekdays', help='filter on weekdays (mon tue wed thu fri sat sun)', nargs="+")
 parser.add_argument('-v','--verbose', help='displays parsed debug', action="store_true")
 args = vars(parser.parse_args())
-if args['verbose'] != None:
+if args['verbose']:
     print("Parsed:", args)
 
 # Parsed inputs
@@ -39,8 +39,8 @@ datestring = args['departure_date'] or "2021-09-25"
 fweekdays = args['weekdays'] or []
 
 # Specific user information, cookie and useragent
-# NB! Remember to change the values under to your specific browser information
-datadome = "datadome=MveZCgDI-LYTM-cAYSRAdJ_Qq8u~UxFweM6XEmGjbm8gkucCk6oNH-wg4mrG7gPn-_Szk0Z36hgAOuqHcnimgad1h9_qOK9hzur658ddqp"
+# datadome = "datadome=MveZCgDI-LYTM-cAYSRAdJ_Qq8u~UxFweM6XEmGjbm8gkucCk6oNH-wg4mrG7gPn-_Szk0Z36hgAOuqHcnimgad1h9_qOK9hzur658ddqp"
+datadome = os.popen("curl -i -s 'https://www.vy.no/'| grep -Eo 'datadome=.*;' | tr '; ' $'\n' | head -1").read().strip()
 useragent = "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"
 
 # Run the program n-times

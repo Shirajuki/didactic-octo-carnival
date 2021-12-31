@@ -18,8 +18,8 @@ WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", 
 
 # Parse inputs
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description='A python CLI for vy.no, effectively displaying train/bus tickets from location A to B', epilog=textwrap.dedent('''
-    Get tickets from-to: python3 vy.py -f trondheim -t lillehammer -d 2021-10-10 -n 3
-    Get tickets weekday filtered: python3 vy.py -f trondheim -t lillehammer -d 2021-10-10 -n 5 -w mon tue fri
+    Get tickets from-to: python3 vy.py -f trondheim -t lillehammer -d 2021-06-09 -n 3
+    Get tickets weekday filtered: python3 vy.py -f trondheim -t lillehammer -d 2021-06-09 -n 5 -w mon tue fri
     Made by me, for me c:'''))
 parser.add_argument('-f','--from', help='the location you will travel from', type=str, required=True)
 parser.add_argument('-t','--to', help='the location you will travel to', type=str, required=True)

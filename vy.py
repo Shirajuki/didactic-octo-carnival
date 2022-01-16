@@ -93,10 +93,10 @@ while i < n:
     ids = json.dumps(ids)
     curl = f"curl -s 'https://www.vy.no/services/booking/api/offer' -H 'User-Agent: {useragent}' -H 'Accept: application/json' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'X-language: no' -H 'terminal-type: WEB' -H 'X-currency: nok' -H 'Content-Type: application/json' -H 'Origin: https://www.vy.no' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Cookie: "+datadome+"""' -H 'TE: Trailers' --data-raw '{"itineraryIds":"""+ids+""","passengers":[],"addons":[]}'"""
     data = os.popen(curl).read()
-    print(curl)
     try:
         data = json.loads(data)['itineraryOffers']
     except:
+        print(">>> ERROR")
         continue
 
     prices = []

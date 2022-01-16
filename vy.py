@@ -93,14 +93,30 @@ while i < n:
     ids = json.dumps(ids)
     curl = f"curl -s 'https://www.vy.no/services/booking/api/offer' -H 'User-Agent: {useragent}' -H 'Accept: application/json' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'X-language: no' -H 'terminal-type: WEB' -H 'X-currency: nok' -H 'Content-Type: application/json' -H 'Origin: https://www.vy.no' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Cookie: "+datadome+"""' -H 'TE: Trailers' --data-raw '{"itineraryIds":"""+ids+""","passengers":[],"addons":[]}'"""
     data = os.popen(curl).read()
-    data = json.loads(data)['itineraryOffers']
+    print(curl)
+    try:
+        data = json.loads(data)['itineraryOffers']
+    except:
+        continue
 
     prices = []
     suggestions = []
     for suggestion in data:
         time = times[suggestion['itineraryId']]
         price = int(int(suggestion['minimumPrice']['value'])/100)
-        updated_suggestion = {"departure": time['departure'], "arrival": time['arrival'], "duration": time['duration'], "price": f"{price},-"}
+        time = times[suggestion['itineraryId']]
+        ticket_type = "NONE"
+        try:
+            ticket_type = suggestion['segmentOffers'][0]['priceConfigurations'][0]['type']
+        except:
+            pass
+        if "UNKNOWN" in ticket_type:
+            ticket_type = "🚅"
+        elif "VY_BUS_ECONOMY_NORWAY" in ticket_type:
+            ticket_type = "🚌"
+        else:
+            ticket_type = "🚫"
+        updated_suggestion = {"departure": time['departure'], "arrival": time['arrival'], "duration": time['duration'], "price": f"{price},-", "ticket_type": ticket_type}
         suggestions.append(updated_suggestion)
 
     # Outputs the information of the tickets
@@ -110,9 +126,10 @@ while i < n:
         arrival = datetime.strftime(ticket['arrival'], "%H:%M")
         duration = f"({ticket['duration']['hours']}t {ticket['duration']['minutes']}min)"
         price = ticket['price']
+        ticket_type = ticket['ticket_type']
         if int(price[:-2]) > 0:
             prices.append(int(price[:-2]))
-        print(f"{departure} - {arrival}, {duration.rjust(10)} - {price.rjust(6)}")
+        print(f"{departure} - {arrival}, {duration.rjust(10)} - {price.rjust(6)} {ticket_type}")
 
     # Outputs the cheapest ticket
     prices.sort()

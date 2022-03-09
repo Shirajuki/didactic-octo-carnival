@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 import os # access to curl
 import argparse # beautiful CLI program
 from datetime import datetime, date, timedelta # handles time
@@ -25,6 +26,7 @@ parser.add_argument('-f','--from', help='the location you will travel from', typ
 parser.add_argument('-t','--to', help='the location you will travel to', type=str, required=True)
 parser.add_argument('-d','--departure-date', help='the departure date in format "YYYY-mm-dd"', type=str, required=True)
 parser.add_argument('-n','--n', help='the amount of days you want to search', type=int)
+parser.add_argument('-D','--datadome', help='the datadome cookie', type=str)
 parser.add_argument('-w','--weekdays', help='filter on weekdays (mon tue wed thu fri sat sun)', nargs="+")
 parser.add_argument('-v','--verbose', help='displays parsed debug', action="store_true")
 args = vars(parser.parse_args())
@@ -40,6 +42,8 @@ fweekdays = args['weekdays'] or []
 
 # Specific user information, cookie and useragent
 datadome = os.popen("curl -i -s 'https://www.vy.no/'| grep -Eo 'datadome=.*;' | tr '; ' $'\n' | head -1").read().strip()
+if args['datadome']:
+    datadome = args['datadome']
 useragent = "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"
 
 # Run the program n-times
@@ -47,6 +51,9 @@ i = 0
 while i < n:
     timestamp = datetime.strptime(datestring, "%Y-%m-%d").isoformat()+"Z"
     day = WEEKDAYS[datetime.strptime(datestring, "%Y-%m-%d").weekday()]
+    weeknumber = timestamp.split("T")[0]
+    weeknumber = datetime.strptime(weeknumber, "%Y-%m-%d")
+    weeknumber = datetime.strftime(weeknumber, "%V")
     if len(fweekdays) > 0 and day.lower()[:3] not in fweekdays:
         datestring = timestamp.split("T")[0]
         datestring = datetime.strptime(datestring, "%Y-%m-%d")
@@ -56,7 +63,9 @@ while i < n:
     i += 1
     print()
     print(datestring, end=" (")
-    print(day, end=")\n")
+    print(day, end=")")
+    print(f" WEEK {weeknumber}")
+
     # Save data, from, to and date
     data = json.dumps({
         "from":{
@@ -80,7 +89,15 @@ while i < n:
     curl = f"curl -s 'https://www.vy.no/services/itinerary/api/travel-planner/search' -H 'User-Agent: {useragent}' -H 'Accept: application/json' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'X-language: no' -H 'terminal-type: WEB' -H 'Content-Type: application/json' -H 'Origin: https://www.vy.no' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Cookie: {datadome}' -H 'Cache-Control: max-age=0' -H 'TE: Trailers' --data-raw '{data}'"
 
     data = os.popen(curl).read()
-    data = json.loads(data)["suggestions"]
+    data = json.loads(data)
+    print(data)
+    bool_check = False if "list" in str(data.get("suggestions", False).__class__) else True
+    print(bool_check, data.get("suggestions", False))
+    if bool_check:
+        print("CAPTCHA ERROR")
+        print()
+        sys.exit(0)
+    data = data["suggestions"]
     ids = []
     times = {}
     for suggestion in data:
@@ -88,6 +105,10 @@ while i < n:
         ids.append(suggestion_id)
         parsed_time_value = {"arrival": datetime.fromisoformat(suggestion['arrival']), "departure": datetime.fromisoformat(suggestion['departure']), "duration": suggestion['totalDuration']}
         times[suggestion_id] = parsed_time_value
+    if len(ids) == 0:
+        print("NONE FOUND RETRY ANOTHER DATE")
+        print()
+        sys.exit(0)
 
     # Get price from id
     ids = json.dumps(ids)

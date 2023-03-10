@@ -142,7 +142,7 @@ while i < n:
             ticket_type = suggestion['segmentOffers'][0]['priceConfigurations'][0]['type']
         except:
             pass
-        if "SJ_NORD_STANDARD_NON_FLEX" in ticket_type:
+        if ticket_type in ["SJ_NORD_STANDARD_NON_FLEX", "UNKNOWN"]:
             ticket_type = "🚅"
         elif "VY_BUS_ECONOMY_NORWAY" in ticket_type:
             ticket_type = "🚌"

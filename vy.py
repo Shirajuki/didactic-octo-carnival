@@ -13,7 +13,8 @@ LOCATION = {
     "trondheim": {"location": "Trondheim S", "latitude": "63.436279","longitude": "10.399123"},
     "lillehammer": {"location": "Lillehammer stasjon", "latitude": "61.114912","longitude": "10.461479"},
     "oslo": {"location": "Oslo S", "latitude": "59.910357","longitude": "10.753051"},
-    "gardermoen": {"location": "Oslo lufthavn", "latitude": "60.193361","longitude": "11.097887"}
+    "gardermoen": {"location": "Oslo lufthavn", "latitude": "60.193361","longitude": "11.097887"},
+    "lillestrom": {"location": "Lillestrøm stasjon", "latitude": "59.953221","longitude": "11.044676"}
 }
 WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -26,6 +27,7 @@ parser.add_argument('-f','--from', help='the location you will travel from', typ
 parser.add_argument('-t','--to', help='the location you will travel to', type=str, required=True)
 parser.add_argument('-d','--departure-date', help='the departure date in format "YYYY-mm-dd"', type=str, required=True)
 parser.add_argument('-n','--n', help='the amount of days you want to search', type=int)
+parser.add_argument('-s','--student', help='student ticket price', action="store_true")
 parser.add_argument('-D','--datadome', help='the datadome cookie', type=str)
 parser.add_argument('-w','--weekdays', help='filter on weekdays (mon tue wed thu fri sat sun)', nargs="+")
 parser.add_argument('-v','--verbose', help='displays parsed debug', action="store_true")
@@ -39,6 +41,9 @@ ato = args['to'] or "trondheim"
 n = args['n'] or 1
 datestring = args['departure_date'] or "2021-09-25"
 fweekdays = args['weekdays'] or []
+student = False
+if args['student']:
+    student = True
 
 # Specific user information, cookie and useragent
 datadome = os.popen("curl -i -s 'https://www.vy.no/'| grep -Eo 'datadome=.*;' | tr '; ' $'\n' | head -1").read().strip()
@@ -90,9 +95,7 @@ while i < n:
 
     data = os.popen(curl).read()
     data = json.loads(data)
-    print(data)
     bool_check = False if "list" in str(data.get("suggestions", False).__class__) else True
-    print(bool_check, data.get("suggestions", False))
     if bool_check:
         print("CAPTCHA ERROR")
         print()
@@ -112,7 +115,15 @@ while i < n:
 
     # Get price from id
     ids = json.dumps(ids)
-    curl = f"curl -s 'https://www.vy.no/services/booking/api/offer' -H 'User-Agent: {useragent}' -H 'Accept: application/json' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'X-language: no' -H 'terminal-type: WEB' -H 'X-currency: nok' -H 'Content-Type: application/json' -H 'Origin: https://www.vy.no' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Cookie: "+datadome+"""' -H 'TE: Trailers' --data-raw '{"itineraryIds":"""+ids+""","passengers":[],"addons":[]}'"""
+    passengers = []
+    if student:
+        passengers = [{"age": 22, "categories": [{"type": "student"}]}]
+    data = json.dumps({
+        "itineraryIds": json.loads(ids),
+        "passengers": passengers,
+        "addons":[]
+    })
+    curl = f"curl -s 'https://www.vy.no/services/booking/api/offer' -H 'User-Agent: {useragent}' -H 'Accept: application/json' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'X-language: no' -H 'terminal-type: WEB' -H 'X-currency: nok' -H 'Content-Type: application/json' -H 'Origin: https://www.vy.no' -H 'DNT: 1' -H 'Connection: keep-alive' -H 'Cookie: "+datadome+f"""' -H 'TE: Trailers' --data-raw '{data}'"""
     data = os.popen(curl).read()
     try:
         data = json.loads(data)['itineraryOffers']
@@ -131,7 +142,7 @@ while i < n:
             ticket_type = suggestion['segmentOffers'][0]['priceConfigurations'][0]['type']
         except:
             pass
-        if "UNKNOWN" in ticket_type:
+        if "SJ_NORD_STANDARD_NON_FLEX" in ticket_type:
             ticket_type = "🚅"
         elif "VY_BUS_ECONOMY_NORWAY" in ticket_type:
             ticket_type = "🚌"
